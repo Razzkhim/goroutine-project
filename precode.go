@@ -26,6 +26,7 @@ func Generator(ctx context.Context, ch chan<- int64, fn func(int64)) {
 			return
 		case ch <- i:
 			fn(i)
+			i++
 		}
 	}
 }
@@ -65,7 +66,7 @@ func main() {
 		atomic.AddInt64(&inputCount, 1)
 	})
 
-	const NumOut = 20 // количество обрабатывающих горутин и каналов
+	const NumOut = 5 // количество обрабатывающих горутин и каналов
 	// outs — слайс каналов, куда будут записываться числа из chIn
 	outs := make([]chan int64, NumOut)
 	for i := 0; i < NumOut; i++ {
@@ -87,8 +88,10 @@ func main() {
 		wg.Add(1)
 		go func(in <-chan int64, i int) {
 			defer wg.Done()
-			amounts[i]++
-			chOut <- amounts[i]
+			for v := range in {
+				amounts[i]++
+				chOut <- v
+			}
 		}(outs[i], i)
 	}
 
